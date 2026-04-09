@@ -77,7 +77,7 @@ SafeWriter* DivEngine::saveXGM(bool loop) {
   if (currentSampleOffset > 0) {
      w->seek(sampleIdTablePos, SEEK_SET);
      for (size_t i=0; i<63; i++) {
-       w->writeS(xgmSampleOff[i] / 256);
+       w->writeS(xgmSampleOff[i] == 0xFFFF ? 0xFFFF : xgmSampleOff[i] / 256);
        w->writeS(xgmSampleSize[i] / 256);
      }
      w->seek(sampleDataBlocSizePos, SEEK_SET);
@@ -205,12 +205,12 @@ SafeWriter* DivEngine::saveXGM(bool loop) {
           if (sId >= 0 && sId < 63) {
             int pcmChannel = pcmChMask[chipIndex] == -1 ? 0 : pcmChMask[chipIndex];
             w->writeC(0x50 | (0x0C) | (pcmChannel & 3));
-            w->writeS((sId + 1));
+            w->writeC((sId + 1));
           }
         } else if (write.addr == 0xffff0002) { // Stop PCM
           int pcmChannel = pcmChMask[chipIndex] == -1 ? 0 : pcmChMask[chipIndex];
           w->writeC(0x50 | (0x0C) | (pcmChannel & 3));
-          w->writeS(0);
+          w->writeC(0);
         }
       }
     }
