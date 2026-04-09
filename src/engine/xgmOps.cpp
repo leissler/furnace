@@ -186,7 +186,7 @@ SafeWriter* DivEngine::saveXGM(bool loop) {
       int v[256];
       for (size_t wi=0; wi<writes.size(); wi++) {
         DivRegWrite& write = writes[wi];
-        if (write.addr == 0x50 || write.addr == 0x7f) {
+        if (write.addr == 0) {
            v[regCount++] = write.val & 0xff;
            if (regCount == 16) {
              w->writeC(0x10 | (regCount - 1));
