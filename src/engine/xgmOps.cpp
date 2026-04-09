@@ -155,7 +155,7 @@ SafeWriter* DivEngine::saveXGM(bool loop) {
           r0[regCount0] = write.addr & 0xff;
           v0[regCount0] = write.val & 0xff;
           regCount0++;
-          if (regCount0 == 255) {
+          if (regCount0 == 16) {
              w->writeC(0x20 | (regCount0 - 1));
              for(int j=0; j<regCount0; j++) { w->writeC(r0[j]); w->writeC(v0[j]); }
              regCount0 = 0;
@@ -164,7 +164,7 @@ SafeWriter* DivEngine::saveXGM(bool loop) {
           r1[regCount1] = write.addr & 0xff;
           v1[regCount1] = write.val & 0xff;
           regCount1++;
-          if (regCount1 == 255) {
+          if (regCount1 == 16) {
              w->writeC(0x30 | (regCount1 - 1));
              for(int j=0; j<regCount1; j++) { w->writeC(r1[j]); w->writeC(v1[j]); }
              regCount1 = 0;
@@ -186,7 +186,7 @@ SafeWriter* DivEngine::saveXGM(bool loop) {
         DivRegWrite& write = writes[wi];
         if (write.addr == 0x50 || write.addr == 0x7f) {
            v[regCount++] = write.val & 0xff;
-           if (regCount == 255) {
+           if (regCount == 16) {
              w->writeC(0x10 | (regCount - 1));
              for(int j=0; j<regCount; j++) { w->writeC(v[j]); }
              regCount = 0;
@@ -266,7 +266,6 @@ SafeWriter* DivEngine::saveXGM(bool loop) {
     w->writeC(loopOffset & 0xff);
     w->writeC((loopOffset >> 8) & 0xff);
     w->writeC((loopOffset >> 16) & 0xff);
-    w->writeC((loopOffset >> 24) & 0xff);
   }
   
   w->writeC(0x7f); // End of music data
