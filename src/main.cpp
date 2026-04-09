@@ -89,6 +89,7 @@ FurnaceCLI cli;
 String outName;
 String vgmOutName;
 String xgmOutName;
+String xgm2OutName;
 String cmdOutName;
 String romOutName;
 String txtOutName;
@@ -592,6 +593,12 @@ TAParamResult pXGMOut(String val) {
   return TA_PARAM_SUCCESS;
 }
 
+TAParamResult pXGM2Out(String val) {
+  xgm2OutName=val;
+  e.setAudio(DIV_AUDIO_DUMMY);
+  return TA_PARAM_SUCCESS;
+}
+
 TAParamResult pCmdOut(String val) {
   cmdOutName=val;
   e.setAudio(DIV_AUDIO_DUMMY);
@@ -644,6 +651,7 @@ void initParams() {
 
   params.push_back(TAParam("O","vgmout",true,pVGMOut,"<filename>","output .vgm data"));
   params.push_back(TAParam("X","xgmout",true,pXGMOut,"<filename>","output .xgm data"));
+  params.push_back(TAParam("","xgm2out",true,pXGM2Out,"<filename>","output .xgm2 data"));
   params.push_back(TAParam("D","direct",false,pDirect,"","set VGM export direct stream mode"));
   params.push_back(TAParam("C","cmdout",true,pCmdOut,"<filename>","output command stream"));
   params.push_back(TAParam("r","romout",true,pROMOut,"<filename|path>","export ROM file, or path for multi-file export"));
@@ -655,7 +663,6 @@ void initParams() {
   params.push_back(TAParam("c","console",false,pConsole,"","enable console mode"));
   params.push_back(TAParam("q","noreport",false,pQuiet,"","do not display message box on error"));
   params.push_back(TAParam("n","nostatus",false,pNoStatus,"","disable playback status in console mode"));
-  params.push_back(TAParam("N","nocontrols",false,pNoControls,"","disable standard input controls in console mode"));
 
   params.push_back(TAParam("l","loops",true,pLoops,"<count>","set number of loops"));
   params.push_back(TAParam("s","subsong",true,pSubSong,"<number>","set sub-song"));
@@ -746,6 +753,7 @@ int main(int argc, char** argv) {
   outName="";
   vgmOutName="";
   xgmOutName="";
+  xgm2OutName="";
   cmdOutName="";
   romOutName="";
   txtOutName="";
@@ -916,7 +924,7 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  const bool outputMode = outName!="" || vgmOutName!="" || xgmOutName!="" || cmdOutName!="" || romOutName!="" || txtOutName!="";
+  const bool outputMode = outName!="" || vgmOutName!="" || xgmOutName!="" || xgm2OutName!="" || cmdOutName!="" || romOutName!="" || txtOutName!="";
 
   if (fileName.empty() && (benchMode || infoMode || outputMode)) {
     logE("provide a file!");
@@ -1097,6 +1105,20 @@ int main(int argc, char** argv) {
         delete w;
       } else {
         logE("could not export XGM!");
+      }
+    }
+    if (xgm2OutName!="") {
+      SafeWriter* w=e.saveXGM2(exportOptions.loops!=0);
+      if (w!=NULL) {
+        FILE* f=ps_fopen(xgm2OutName.c_str(),"wb");
+        if (f!=NULL) {
+          fwrite(w->getFinalBuf(),1,w->size(),f);
+          fclose(f);
+        }
+        w->finish();
+        delete w;
+      } else {
+        logE("could not export XGM2!");
       }
     }
     if (outName!="") {

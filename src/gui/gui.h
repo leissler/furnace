@@ -643,6 +643,7 @@ enum FurnaceGUIFileDialogs {
   GUI_FILE_EXPORT_AUDIO_PER_CHANNEL,
   GUI_FILE_EXPORT_VGM,
   GUI_FILE_EXPORT_XGM,
+  GUI_FILE_EXPORT_XGM2,
   GUI_FILE_EXPORT_CMDSTREAM,
   GUI_FILE_EXPORT_TEXT,
   GUI_FILE_EXPORT_ROM,
@@ -2969,6 +2970,7 @@ class FurnaceGUI {
   void drawExportAudio(bool onWindow=false);
   void drawExportVGM(bool onWindow=false);
   void drawExportXGM(bool onWindow=false);
+  void drawExportXGM2(bool onWindow);
   void drawExportROM(bool onWindow=false);
   void drawExportText(bool onWindow=false);
   void drawExportCommand(bool onWindow=false);

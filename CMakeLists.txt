@@ -809,6 +809,8 @@ src/engine/wavetable.cpp
 src/engine/waveSynth.cpp
 src/engine/wavOps.cpp
 src/engine/vgmOps.cpp
+src/engine/xgmOps.cpp
+src/engine/xgm2Ops.cpp
 
 src/engine/platform/abstract.cpp
 src/engine/platform/genesis.cpp

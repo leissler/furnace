@@ -2207,6 +2207,7 @@ void FurnaceGUI::openFileDialog(FurnaceGUIFileDialogs type) {
       );
       break;
     case GUI_FILE_EXPORT_XGM:
+    case GUI_FILE_EXPORT_XGM2:
       if (!dirExists(workingDirVGMExport)) workingDirVGMExport=getHomeDir();
       hasOpened=fileDialog->openSave(
         _("Export XGM"),
@@ -5675,6 +5676,7 @@ bool FurnaceGUI::loop() {
           break;
         case GUI_FILE_EXPORT_VGM:
         case GUI_FILE_EXPORT_XGM:
+        case GUI_FILE_EXPORT_XGM2:
           workingDirVGMExport=fileDialog->getPath()+DIR_SEPARATOR_STR;
           break;
         case GUI_FILE_EXPORT_ROM:
@@ -5785,6 +5787,9 @@ bool FurnaceGUI::loop() {
           }
           if (curFileDialog==GUI_FILE_EXPORT_XGM) {
             checkExtension(".xgm");
+          }
+          if (curFileDialog==GUI_FILE_EXPORT_XGM2) {
+            checkExtension(".xgm2");
           }
           if (curFileDialog==GUI_FILE_EXPORT_ROM) {
             checkExtension(romFilterExt.c_str());
@@ -6280,6 +6285,27 @@ bool FurnaceGUI::loop() {
                 }
               } else {
                 showError(fmt::sprintf(_("could not write XGM! (%s)"),e->getLastError()));
+              }
+              break;
+            }
+            case GUI_FILE_EXPORT_XGM2: {
+              SafeWriter* w=e->saveXGM2(vgmExportLoop);
+              if (w!=NULL) {
+                FILE* f=ps_fopen(copyOfName.c_str(),"wb");
+                if (f!=NULL) {
+                  fwrite(w->getFinalBuf(),1,w->size(),f);
+                  fclose(f);
+                  pushRecentSys(copyOfName.c_str());
+                } else {
+                  showError(_("could not open file!"));
+                }
+                w->finish();
+                delete w;
+                if (!e->getWarnings().empty()) {
+                  showWarning(e->getWarnings(),GUI_WARN_GENERIC);
+                }
+              } else {
+                showError(fmt::sprintf(_("could not write XGM2! (%s)"),e->getLastError()));
               }
               break;
             }
