@@ -2206,6 +2206,16 @@ void FurnaceGUI::openFileDialog(FurnaceGUIFileDialogs type) {
         (settings.autoFillSave)?shortName:""
       );
       break;
+    case GUI_FILE_EXPORT_XGM:
+      if (!dirExists(workingDirVGMExport)) workingDirVGMExport=getHomeDir();
+      hasOpened=fileDialog->openSave(
+        _("Export XGM"),
+        {_("XGM file"), "*.xgm"},
+        workingDirVGMExport,
+        dpiScale,
+        (settings.autoFillSave)?shortName:""
+      );
+      break;
     case GUI_FILE_EXPORT_TEXT:
       if (!dirExists(workingDirROMExport)) workingDirROMExport=getHomeDir();
       hasOpened=fileDialog->openSave(
@@ -5023,6 +5033,10 @@ bool FurnaceGUI::loop() {
             drawExportVGM();
             ImGui::EndMenu();
           }
+          if (ImGui::MenuItem(_("export XGM..."))) {
+            curFileDialog=GUI_FILE_EXPORT_XGM;
+            openFileDialog(GUI_FILE_EXPORT_XGM);
+          }
           if (romExportExists) {
             if (ImGui::BeginMenu(_("export ROM..."))) {
               drawExportROM();
@@ -5049,6 +5063,10 @@ bool FurnaceGUI::loop() {
           if (ImGui::MenuItem(_("export VGM..."))) {
             curExportType=GUI_EXPORT_VGM;
             displayExport=true;
+          }
+          if (ImGui::MenuItem(_("export XGM..."))) {
+            curFileDialog=GUI_FILE_EXPORT_XGM;
+            openFileDialog(GUI_FILE_EXPORT_XGM);
           }
           if (romExportExists) {
             if (ImGui::MenuItem(_("export ROM..."))) {
@@ -5656,6 +5674,7 @@ bool FurnaceGUI::loop() {
           workingDirAudioExport=fileDialog->getPath()+DIR_SEPARATOR_STR;
           break;
         case GUI_FILE_EXPORT_VGM:
+        case GUI_FILE_EXPORT_XGM:
           workingDirVGMExport=fileDialog->getPath()+DIR_SEPARATOR_STR;
           break;
         case GUI_FILE_EXPORT_ROM:
@@ -5763,6 +5782,9 @@ bool FurnaceGUI::loop() {
           }
           if (curFileDialog==GUI_FILE_EXPORT_VGM) {
             checkExtension(".vgm");
+          }
+          if (curFileDialog==GUI_FILE_EXPORT_XGM) {
+            checkExtension(".xgm");
           }
           if (curFileDialog==GUI_FILE_EXPORT_ROM) {
             checkExtension(romFilterExt.c_str());
@@ -6237,6 +6259,27 @@ bool FurnaceGUI::loop() {
                 }
               } else {
                 showError(fmt::sprintf(_("could not write VGM! (%s)"),e->getLastError()));
+              }
+              break;
+            }
+            case GUI_FILE_EXPORT_XGM: {
+              SafeWriter* w=e->saveXGM(vgmExportLoop);
+              if (w!=NULL) {
+                FILE* f=ps_fopen(copyOfName.c_str(),"wb");
+                if (f!=NULL) {
+                  fwrite(w->getFinalBuf(),1,w->size(),f);
+                  fclose(f);
+                  pushRecentSys(copyOfName.c_str());
+                } else {
+                  showError(_("could not open file!"));
+                }
+                w->finish();
+                delete w;
+                if (!e->getWarnings().empty()) {
+                  showWarning(e->getWarnings(),GUI_WARN_GENERIC);
+                }
+              } else {
+                showError(fmt::sprintf(_("could not write XGM! (%s)"),e->getLastError()));
               }
               break;
             }
