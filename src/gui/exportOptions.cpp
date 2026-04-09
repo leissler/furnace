@@ -589,6 +589,22 @@ void FurnaceGUI::drawExportDMF(bool onWindow) {
   }
 }
 
+void FurnaceGUI::drawExportXGM(bool onWindow) {
+  exitDisabledTimer=1;
+
+  ImGui::Text(_("this option exports the song to an XGM file.\n"));
+  
+  if (onWindow) {
+    ImGui::Separator();
+    if (ImGui::Button(_("Cancel"),ImVec2(200.0f*dpiScale,0))) ImGui::CloseCurrentPopup();
+    ImGui::SameLine();
+  }
+  if (ImGui::Button(_("Export"),ImVec2(200.0f*dpiScale,0))) {
+    openFileDialog(GUI_FILE_EXPORT_XGM);
+    ImGui::CloseCurrentPopup();
+  }
+}
+
 void FurnaceGUI::drawExport() {
   if (settings.exportOptionsLayout==1 || curExportType==GUI_EXPORT_NONE) {
     if (ImGui::BeginTabBar("ExportTypes")) {
@@ -598,6 +614,10 @@ void FurnaceGUI::drawExport() {
       }
       if (ImGui::BeginTabItem(_("VGM"))) {
         drawExportVGM(true);
+        ImGui::EndTabItem();
+      }
+      if (ImGui::BeginTabItem(_("XGM"))) {
+        drawExportXGM(true);
         ImGui::EndTabItem();
       }
       if (romExportExists) {
@@ -638,6 +658,9 @@ void FurnaceGUI::drawExport() {
       break;
     case GUI_EXPORT_DMF:
       drawExportDMF(true);
+      break;
+    case GUI_EXPORT_XGM:
+      drawExportXGM(true);
       break;
     default:
       ImGui::Text(_("congratulations! you've unlocked a secret panel."));

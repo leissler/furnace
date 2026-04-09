@@ -5065,8 +5065,8 @@ bool FurnaceGUI::loop() {
             displayExport=true;
           }
           if (ImGui::MenuItem(_("export XGM..."))) {
-            curFileDialog=GUI_FILE_EXPORT_XGM;
-            openFileDialog(GUI_FILE_EXPORT_XGM);
+            curExportType=GUI_EXPORT_XGM;
+            displayExport=true;
           }
           if (romExportExists) {
             if (ImGui::MenuItem(_("export ROM..."))) {
