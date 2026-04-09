@@ -140,17 +140,19 @@ SafeWriter* DivEngine::saveXGM(bool loop) {
       
       for (size_t wi=0; wi<writes.size(); wi++) {
         DivRegWrite& write = writes[wi];
-        if (write.addr == 0xffff0000) { // Play sample
+        if ((write.addr & 0xffff00ff) == 0xffff0000) { // Play sample
+          int subCh = (write.addr & 0xff00) >> 8;
           int sId = xgmSampleIdTable[write.val];
           if (sId >= 0 && sId < 63) {
-            int pcmChannel = pcmChMask[chipIndex] == -1 ? 0 : pcmChMask[chipIndex];
-            w->writeC(0x50 | (0x0C) | pcmChannel);
-            w->writeS((sId + 1));
+            int pcmChannel = (pcmChMask[chipIndex] == -1 ? 0 : pcmChMask[chipIndex]) + subCh;
+            w->writeC(0x50 | (0x0C) | (pcmChannel & 3));
+            w->writeC((sId + 1));
           }
-        } else if (write.addr == 0xffff0002) { // Stop PCM
-          int pcmChannel = pcmChMask[chipIndex] == -1 ? 0 : pcmChMask[chipIndex];
-          w->writeC(0x50 | (0x0C) | pcmChannel);
-          w->writeS(0);
+        } else if ((write.addr & 0xffff00ff) == 0xffff0002) { // Stop PCM
+          int subCh = (write.addr & 0xff00) >> 8;
+          int pcmChannel = (pcmChMask[chipIndex] == -1 ? 0 : pcmChMask[chipIndex]) + subCh;
+          w->writeC(0x50 | (0x0C) | (pcmChannel & 3));
+          w->writeC(0);
         } else if (write.addr < 0x100) {
           r0[regCount0] = write.addr & 0xff;
           v0[regCount0] = write.val & 0xff;
@@ -200,15 +202,17 @@ SafeWriter* DivEngine::saveXGM(bool loop) {
     } else if (song.system[chipIndex] == DIV_SYSTEM_PCM_DAC) {
       for (size_t wi=0; wi<writes.size(); wi++) {
         DivRegWrite& write = writes[wi];
-        if (write.addr == 0xffff0000) { // Play sample
+        if ((write.addr & 0xffff00ff) == 0xffff0000) { // Play sample
+          int subCh = (write.addr & 0xff00) >> 8;
           int sId = xgmSampleIdTable[write.val];
           if (sId >= 0 && sId < 63) {
-            int pcmChannel = pcmChMask[chipIndex] == -1 ? 0 : pcmChMask[chipIndex];
+            int pcmChannel = (pcmChMask[chipIndex] == -1 ? 0 : pcmChMask[chipIndex]) + subCh;
             w->writeC(0x50 | (0x0C) | (pcmChannel & 3));
             w->writeC((sId + 1));
           }
-        } else if (write.addr == 0xffff0002) { // Stop PCM
-          int pcmChannel = pcmChMask[chipIndex] == -1 ? 0 : pcmChMask[chipIndex];
+        } else if ((write.addr & 0xffff00ff) == 0xffff0002) { // Stop PCM
+          int subCh = (write.addr & 0xff00) >> 8;
+          int pcmChannel = (pcmChMask[chipIndex] == -1 ? 0 : pcmChMask[chipIndex]) + subCh;
           w->writeC(0x50 | (0x0C) | (pcmChannel & 3));
           w->writeC(0);
         }
