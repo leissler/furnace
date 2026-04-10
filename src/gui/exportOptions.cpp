@@ -632,13 +632,24 @@ void FurnaceGUI::drawExport() {
         drawExportVGM(true);
         ImGui::EndTabItem();
       }
-      if (ImGui::BeginTabItem(_("XGM"))) {
-        drawExportXGM(true);
-        ImGui::EndTabItem();
+      
+      bool hasGenesis = false;
+      for (int i=0; i<e->song.systemLen; i++) {
+        if (e->song.system[i] == DIV_SYSTEM_GENESIS || e->song.system[i] == DIV_SYSTEM_GENESIS_EXT) {
+          hasGenesis = true;
+          break;
+        }
       }
-      if (ImGui::BeginTabItem(_("XGM2"))) {
-        drawExportXGM2(true);
-        ImGui::EndTabItem();
+
+      if (hasGenesis) {
+        if (ImGui::BeginTabItem(_("XGM"))) {
+          drawExportXGM(true);
+          ImGui::EndTabItem();
+        }
+        if (ImGui::BeginTabItem(_("XGM2"))) {
+          drawExportXGM2(true);
+          ImGui::EndTabItem();
+        }
       }
       if (romExportExists) {
         if (ImGui::BeginTabItem(_("ROM"))) {
@@ -681,6 +692,9 @@ void FurnaceGUI::drawExport() {
       break;
     case GUI_EXPORT_XGM:
       drawExportXGM(true);
+      break;
+    case GUI_EXPORT_XGM2:
+      drawExportXGM2(true);
       break;
     default:
       ImGui::Text(_("congratulations! you've unlocked a secret panel."));

@@ -9,6 +9,21 @@ the biggest multi-system chiptune tracker ever made!
 [documentation/discussion/help](#quick-references) | [developer info](#developer-info)
 
 ---
+
+## ⚠️ About this Fork: Mega Drive XGM/XGM2 Export Support
+
+This is a customized fork of Furnace Tracker designed specifically to add native support for the **SGDK XGM and XGM2 audio formats** used in Sega Mega Drive / Genesis homebrew development!
+
+### 🌟 New Features
+- **Direct XGM / XGM2 Export:** You can now natively export your `.fur` modules directly to `.xgm` and `.xgm2` files through the File -> Export menus.
+- **SGDK Ready:** The exported files are strictly formatted and fully compatible with the official SGDK `xgmtool` and `xgm2tool` compilation pipelines, meaning you can drop your `.xgm` exports right into `rescomp`.
+
+### 🛑 Constraints & Limitations
+Please note the following constraints before composing for XGM2:
+- **PCM Volume Envelopes:** The SGDK's execution of XGM2 uses an optimized Z80 software mixer for PCM audio channels to save CPU cycles. This mixer **does not support dynamic volume scaling, fades, or envelopes for PCM tracks**. It can only trigger or cut samples.
+- Any complex volume curves, portamento sweeps, or amplitude envelopes designed on PCM drums/samples inside Furnace *will be completely discarded during XGM2 export*. To retain dynamic drumming, you must **bake your volume fades directly into the `.wav` samples** in an external audio suite before loading them into Furnace!
+
+---
 ## downloads
 
 check out the [Releases](https://github.com/tildearrow/furnace/releases) page. available for Windows, macOS and Linux.

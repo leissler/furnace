@@ -5034,9 +5034,24 @@ bool FurnaceGUI::loop() {
             drawExportVGM();
             ImGui::EndMenu();
           }
-          if (ImGui::MenuItem(_("export XGM..."))) {
-            curFileDialog=GUI_FILE_EXPORT_XGM;
-            openFileDialog(GUI_FILE_EXPORT_XGM);
+
+          bool hasGenesis = false;
+          for (int i=0; i<e->song.systemLen; i++) {
+            if (e->song.system[i] == DIV_SYSTEM_GENESIS || e->song.system[i] == DIV_SYSTEM_GENESIS_EXT) {
+              hasGenesis = true;
+              break;
+            }
+          }
+
+          if (hasGenesis) {
+            if (ImGui::MenuItem(_("export XGM..."))) {
+              curFileDialog=GUI_FILE_EXPORT_XGM;
+              openFileDialog(GUI_FILE_EXPORT_XGM);
+            }
+            if (ImGui::MenuItem(_("export XGM2..."))) {
+              curFileDialog=GUI_FILE_EXPORT_XGM2;
+              openFileDialog(GUI_FILE_EXPORT_XGM2);
+            }
           }
           if (romExportExists) {
             if (ImGui::BeginMenu(_("export ROM..."))) {
@@ -5065,9 +5080,25 @@ bool FurnaceGUI::loop() {
             curExportType=GUI_EXPORT_VGM;
             displayExport=true;
           }
-          if (ImGui::MenuItem(_("export XGM..."))) {
-            curExportType=GUI_EXPORT_XGM;
-            displayExport=true;
+
+          bool hasGenesis = false;
+          for (int i=0; i<e->song.systemLen; i++) {
+            if (e->song.system[i] == DIV_SYSTEM_GENESIS || e->song.system[i] == DIV_SYSTEM_GENESIS_EXT) {
+              hasGenesis = true;
+              break;
+            }
+          }
+
+          if (hasGenesis) {
+            if (ImGui::MenuItem(_("export XGM..."))) {
+              curExportType=GUI_EXPORT_XGM;
+              displayExport=true;
+            }
+            // Add XGM2 here if it exists in layout 2
+            if (ImGui::MenuItem(_("export XGM2..."))) {
+              curExportType=GUI_FILE_EXPORT_XGM2;
+              displayExport=true;
+            }
           }
           if (romExportExists) {
             if (ImGui::MenuItem(_("export ROM..."))) {

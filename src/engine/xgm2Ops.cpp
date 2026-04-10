@@ -31,6 +31,17 @@ SafeWriter* DivEngine::saveXGM2(bool loop) {
   psg->init();
 
   w->write("XGM2", 4);
+  w->writeC(0x10); // version (0x10 currently)
+  w->writeC((fmod(curSubSong->hz,1.0) < 0.00001 && curSubSong->hz == 50.0)?1:0); // flags (bit 0 = PAL)
+
+  int sampleDataBlocSizePos = w->size(); // 0x0006
+  w->writeS(0);
+
+  int fmlenPos = w->size();              // 0x0008
+  w->writeS(0);
+
+  int psglenPos = w->size();             // 0x000A
+  w->writeS(0);
 
   // Collect samples up to 63
   std::vector<int> xgmSamples;
@@ -44,17 +55,12 @@ SafeWriter* DivEngine::saveXGM2(bool loop) {
     }
   }
   
-  // Sample ID table (252 bytes)
+  // Sample ID table at 0x000C
+  // size = 124 entries (248 bytes), each entry is 2 bytes!
   int sampleIdTablePos = w->size();
   for (int i=0; i<124; i++) {
-    w->writeI(0); // placeholder
+    w->writeS(0xFFFF); // placeholder, initialize to 0xFFFF because XGM2 format expects it
   }
-
-  int sampleDataBlocSizePos = w->size();
-  w->writeS(0);
-
-  w->writeC(1); // Version
-  w->writeC((fmod(curSubSong->hz,1.0) < 0.00001 && curSubSong->hz == 50.0)?1:0); // NTSC / PAL
 
   unsigned int xgmSampleOff[124];
   unsigned int xgmSampleSize[124];
@@ -67,8 +73,10 @@ SafeWriter* DivEngine::saveXGM2(bool loop) {
        int padLen = (len + 255) & ~255;
        xgmSampleOff[i] = currentSampleOffset;
        xgmSampleSize[i] = padLen;
-       w->write(s->data8, len);
-       for(int j=0; j<padLen - len; j++) w->writeC(0);
+       for (int j=0; j<len; j++) {
+           w->writeC((unsigned char)(((int)s->data8[j]) + 0x80));
+       }
+       for(int j=0; j<padLen - len; j++) w->writeC(0x80);
        currentSampleOffset += padLen;
     } else {
        xgmSampleOff[i] = 0xFFFF;
@@ -87,11 +95,6 @@ SafeWriter* DivEngine::saveXGM2(bool loop) {
      w->writeS((currentSampleOffset + 255) / 256);
      w->seek(currentPos, SEEK_SET);
   }
-
-  int fmlenPos = w->size();
-  w->writeS(0); // placeholder for fmlen
-  int psglenPos = w->size();
-  w->writeS(0); // placeholder for psglen
 
   // Note: we jump straight to data block writing, which must be aligned
   int startPadding = w->size() % 256;
@@ -136,8 +139,11 @@ SafeWriter* DivEngine::saveXGM2(bool loop) {
   bool done = false;
 
   int psgTone[4] = {0,0,0,0};
+  int psgLastFramePos = 0;
   int psgLcdc = 0;
 
+  int fmLastFramePos = 0;
+  int pcmRate[4] = {14000, 14000, 14000, 14000};
   auto processWritesXGM = [&](int chipIndex, std::vector<DivRegWrite>& writes) {
     if (song.system[chipIndex] == DIV_SYSTEM_YM2612 || song.system[chipIndex] == DIV_SYSTEM_YM2612_EXT || song.system[chipIndex] == DIV_SYSTEM_YM2612_DUALPCM || song.system[chipIndex] == DIV_SYSTEM_YM2612_DUALPCM_EXT || song.system[chipIndex] == DIV_SYSTEM_YM2612_CSM) {
       int regCount0 = 0;
@@ -149,7 +155,10 @@ SafeWriter* DivEngine::saveXGM2(bool loop) {
       
       for (size_t wi=0; wi<writes.size(); wi++) {
         DivRegWrite& write = writes[wi];
-        if ((write.addr & 0xffff00ff) == 0xffff0000 || (write.addr & 0xffff00ff) == 0xffff0001) { // Play sample
+        if ((write.addr & 0xffff00ff) == 0xffff0001) { // Sample Rate
+            int subCh = (write.addr & 0xff00) >> 8;
+            pcmRate[subCh & 3] = write.val;
+        } else if ((write.addr & 0xffff00ff) == 0xffff0000) { // Play Sample
           int subCh = (write.addr & 0xff00) >> 8;
           int sId = xgmSampleIdTable[write.val];
           if (sId >= 0 && sId < 124) {
@@ -157,11 +166,8 @@ SafeWriter* DivEngine::saveXGM2(bool loop) {
             // Map freq \> 14kHz to Full speed (b2=0), < 14kHz to Half speed (b2=1)
             // By default, just set to full speed.
             int speedBit = 0;
-            if ((write.addr & 0xffff00ff) == 0xffff0001) {
-               // Simple freq mapping: If < 10kHz, half speed, else full
-               int realFreq = (write.val*44100)/2790; // Approx rate mapping
-               if (realFreq < 10000) speedBit = 4; // Set bit 2
-            }
+                int realFreq = (pcmRate[subCh & 3]*44100)/2790; // Approx rate mapping
+                if (realFreq < 10000) speedBit = 4; // Set bit 2
             fm->writeC(0x10 | (1 << 3) | speedBit | (pcmChannel % 3));
             fm->writeC((sId + 1));
           }
@@ -202,6 +208,7 @@ SafeWriter* DivEngine::saveXGM2(bool loop) {
       for (size_t wi=0; wi<writes.size(); wi++) {
         DivRegWrite& write = writes[wi];
         if (write.addr == 0) {
+           if (psg->size() - psgLastFramePos > 200) { psg->writeC(0x00); printf("\n--- PSG EXPLICIT WAIT AT %zu ---\n", psg->size()); psgLastFramePos = psg->size(); }
            int val = write.val & 0xff;
            if (val & 0x80) { // Latch
                int chan = (val >> 5) & 3;
@@ -220,7 +227,10 @@ SafeWriter* DivEngine::saveXGM2(bool loop) {
            } else { // Data
                int chan = (psgLcdc >> 5) & 3;
                int type = (psgLcdc >> 4) & 1;
-               if (type == 0 && chan < 3) { // Tone upper
+               if (type == 1) {
+                   int data = val & 0x0F;
+                   psg->writeC(((0x8 + chan) << 4) | data);
+               } else if (type == 0 && chan < 3) { // Tone upper
                    int data = val & 0x3F;
                    int tone = psgTone[chan] & 0x0F;
                    tone |= (data << 4);
@@ -235,7 +245,10 @@ SafeWriter* DivEngine::saveXGM2(bool loop) {
     } else if (song.system[chipIndex] == DIV_SYSTEM_PCM_DAC) {
       for (size_t wi=0; wi<writes.size(); wi++) {
         DivRegWrite& write = writes[wi];
-        if ((write.addr & 0xffff00ff) == 0xffff0000 || (write.addr & 0xffff00ff) == 0xffff0001) { // Play sample
+        if ((write.addr & 0xffff00ff) == 0xffff0001) { // Sample Rate
+            int subCh = (write.addr & 0xff00) >> 8;
+            pcmRate[subCh & 3] = write.val;
+        } else if ((write.addr & 0xffff00ff) == 0xffff0000) { // Play Sample
           int subCh = (write.addr & 0xff00) >> 8;
           int sId = xgmSampleIdTable[write.val];
           if (sId >= 0 && sId < 124) {
@@ -293,7 +306,6 @@ SafeWriter* DivEngine::saveXGM2(bool loop) {
     
     fmEngineTime += 1.0;
     psgEngineTime += 1.0;
-    
     int fmWaitFrames = 0;
     while (fmEngineTime >= expectedFmTime) {
        fmWaitFrames++;
@@ -302,16 +314,17 @@ SafeWriter* DivEngine::saveXGM2(bool loop) {
     while (fmWaitFrames > 0) {
        if (fmWaitFrames <= 15) {
            fm->writeC(0x00 | (fmWaitFrames - 1));
+           fmLastFramePos = fm->size();
            fmWaitFrames = 0;
        } else {
            int chunk = fmWaitFrames;
            if (chunk > 271) chunk = 271;
            fm->writeC(0x0F);
            fm->writeC(chunk - 16);
+           fmLastFramePos = fm->size();
            fmWaitFrames -= chunk;
        }
     }
-    
     int psgWaitFrames = 0;
     while (psgEngineTime >= expectedPsgTime) {
        psgWaitFrames++;
@@ -319,17 +332,20 @@ SafeWriter* DivEngine::saveXGM2(bool loop) {
     }
     while (psgWaitFrames > 0) {
        if (psgWaitFrames <= 14) {
-           psg->writeC(0x00 | (psgWaitFrames - 1));
+           psg->writeC(0x00 | (psgWaitFrames - 1)); printf("\n--- PSG IMPLICIT WAIT AT %zu ---\n", psg->size());
+           psgLastFramePos = psg->size();
            psgWaitFrames = 0;
        } else {
            int chunk = psgWaitFrames;
            if (chunk > 270) chunk = 270;
            psg->writeC(0x0E);
            psg->writeC(chunk - 15);
+           psgLastFramePos = psg->size();
            psgWaitFrames -= chunk;
        }
     }
     
+    printf("\n--- DEBUG: PSG Array Size: %zu ---\n", psg->size());
     if (!playing) done = true;
   }
 
